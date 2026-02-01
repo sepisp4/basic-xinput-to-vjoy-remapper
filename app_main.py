@@ -331,18 +331,31 @@ class App:
         self.root.after(50, self.poll_step1)
     
     def poll_step1(self):
-        if not self.frame_step1.winfo_viewable(): return
-        connected = []
-        for i in range(4):
-            state = self.xi.get_state(i)
-            if state:
-                connected.append(f"Port {i}")
-                if self.xi.is_button_pressed(state) and self.selected_port != i:
-                    self.selected_port = i
-                    self.lbl_status.config(text=f"Auto-Detected Port {i}!", fg="green")
-                    self.btn_next.config(state="normal")
-                    self.step1_combo.set(f"Port {i}")
-        self.step1_combo['values'] = connected
+        # CHECK: If widget is destroyed or not existing, stop. 
+        # CHANGED: We use winfo_exists() instead of viewable() to prevent early exit.
+        if not self.frame_step1.winfo_exists(): return
+        
+        try:
+            connected = []
+            for i in range(4):
+                state = self.xi.get_state(i)
+                if state:
+                    connected.append(f"Port {i}")
+                    if self.xi.is_button_pressed(state) and self.selected_port != i:
+                        self.selected_port = i
+                        self.lbl_status.config(text=f"Auto-Detected Port {i}!", fg="green")
+                        self.btn_next.config(state="normal")
+                        self.step1_combo.set(f"Port {i}")
+            
+            # Update Dropdown List
+            if list(self.step1_combo['values']) != connected:
+                self.step1_combo['values'] = connected
+                if self.step1_combo.get() not in connected:
+                    self.step1_combo.set("")
+        except Exception as e:
+            print(f"POLLING ERROR: {e}")
+
+        # Recursion
         self.root.after(50, self.poll_step1)
 
     def manual_select(self, event):
